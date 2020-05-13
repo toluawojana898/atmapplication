@@ -6,7 +6,6 @@ def cashAdd(username,password):
 	amount = int(input("Enter the amount you want to deposit: "))
 	final_amount = int(balance) + amount
 	qdb.query_db(qdb.transfer_to_query,amount,account_number)
-	#We have to check this
 	print('The deposit of {} was successful for account number {} you now have a balance of {}'.format(amount,account_number,final_amount))
 	return True
 
