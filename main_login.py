@@ -2,7 +2,11 @@ import getpass as pas
 import login
 import welcome
 import deposit_cash as dep
-import query_db as qdb
+import query_db as qdb 
+from datetime import date
+import logging
+import mysql.connector
+from mysql.connector import errorcode
 
 def myATM():
 	print('_'*85)
@@ -27,22 +31,44 @@ def myATM():
 		userinput = input('Enter username: ')
 		pidkeys = pas.getpass(prompt='password: ')
 		if login.enter_pass(userinput,pidkeys):
-			welcome.dashboard(userinput,pidkeys)
-			options = int(input('Enter your choice:1,2,3,4: '))
-			while not True:
-				account_number, __ = qdb.query_db(qdb.customer_transfer_query,account_number, amount_send)[0]
-				if options in [1,2,3,4]:
+			account_number, balance = welcome.dashboard(userinput,pidkeys)
+			while True:
+				try:
 					print('Select options 1 to 4.')
 					options = int(input('Enter your choice:1,2,3,4: '))
-					continue
-			else:
-				if options == 1:
-					dep.cashAdd(userinput,pidkeys)
-				if options == 2:
-					dep.cashRemove(userinput,pidkeys)
-				if options == 3:
-					dep.transfercash(account_number)
+				except:
+					options = 0
+				if options in [1,2,3,4]:
+					if options == 1:
+						dep.cashAdd(userinput,pidkeys)
+					if options == 2:
+						dep.cashRemove(userinput,pidkeys)
+					if options == 3:
+						dep.transfercash(account_number)
+					if options ==4:
+						print('Thanks for banking with us, we are here to serve you better.')
+						break
+				else:
+					try:
+						print('Select options 1 to 4.')
+						options = int(input('Enter your choice:1,2,3,4: '))
+					except:
+						options = 0
 	else:
-		pass
-
+		dep.accNew()
 myATM()
+
+'''
+	second_option = int(input('Would you like to do anything else, press 1 for Yes and 2 for No: '))
+	if second_option == 1:
+		at.myATM()
+	else:
+		print('Thank you for banking with Teejay\'s Bank')
+		pass
+		return True
+
+second_option = int(input('Would you like to do anything else, press 1 for Yes and 2 for No: '))
+					if second_option == 2:
+						print('Thank you for banking with Teejay\'s Bank')
+					else:
+'''
