@@ -2,6 +2,8 @@ from datetime import date
 import mysql.connector
 from mysql.connector import errorcode
 import logging
+
+
 LOG_FORMAT = '%(asctime)-15s %(levelname)s %(message)s'
 LOG_FILE = '/Users/tolu/Downloads/Tolu_Python/log1.txt'
 
@@ -17,14 +19,13 @@ query_config = {
   'host': '127.0.0.1',
   'raise_on_warnings': True
 }
-
 DB_NAME = 'atm'
 
 TABLES = {}
 
 TABLES['customer'] = (
     "CREATE TABLE `customer` ("
-    "  `id` int(11) NOT NULL AUTO_INCREMENT,"
+    "  `account_number` int(11) NOT NULL AUTO_INCREMENT,"
     "  `fullname` varchar(50) NOT NULL,"
     "  `username` varchar(16) NOT NULL,"
     "  `password` varchar(16) NOT NULL,"
@@ -32,24 +33,22 @@ TABLES['customer'] = (
     "  `email` varchar(50) NOT NULL,"
     "  `date_of_birth` date NOT NULL,"
     "  `last_updated` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-    "  PRIMARY KEY (`id`)"
+    "  PRIMARY KEY (`account_number`)"
     ") ENGINE=InnoDB")
 
 TABLES['account'] = (
     "CREATE TABLE `account` ("
     "  `customer_id` int(11) NOT NULL,"
-    "  `account_number` int(11) NOT NULL,"
     "  `balance` char(10) NOT NULL,"
     "  `account_type` enum('Current','Savings') NOT NULL,"
     "  `last_updated` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-    "  PRIMARY KEY (`account_number`)"
+    "  PRIMARY KEY (`customer_id`)"
     ") ENGINE=InnoDB")
 
 # Only run once
 cnx = mysql.connector.connect(**query_config)
 cursor = cnx.cursor()
 def create_database(cursor):
-
 	try:
 		cursor.execute("CREATE DATABASE {} DEFAULT CHARACTER SET 'UTF8MB4'".format(DB_NAME))
 		logger.info("database {} created successfully".format(DB_NAME))
