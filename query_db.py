@@ -2,6 +2,7 @@ from datetime import date
 import mysql.connector
 from mysql.connector import errorcode
 import logging
+import getpass as pas
 
 LOG_FORMAT = '%(asctime)-15s %(levelname)s %(message)s'
 LOG_FILE = '/Users/tolu/Downloads/Tolu_Python/log1.txt' #Personalize
@@ -20,17 +21,30 @@ query_config = {
   'raise_on_warnings': True
 }
 
-insert_account_data_query = ("INSERT INTO atm.account (customer_id, account_number, balance, account_type) VALUES (%s, %s, %s, %s)")
+insert_account_data_query = ("INSERT INTO atm.account (customer_id, balance, account_type) VALUES (%s, %s, %s)")
 insert_cusomer_data_query = ("INSERT INTO atm.customer (fullname, username, password, gender, email, date_of_birth) VALUES (%s, %s, %s, %s, %s, %s)")
 
+check_customer_username = ("SELECT username FROM atm.customer;")
+check_account_data = ("SELECT account_number FROM atm.customer;")
+
+display_customer_data_query = ("SELECT account_number, balance, fullname FROM atm.account join atm.customer on (atm.account.customer_id = atm.customer.account_number) where username = %s and password = %s")
+get_account_query = ("SELECT account_number FROM atm.customer WHERE username = %s and password = %s")
+
+account_name_query = ("SELECT fullname FROM atm.customer WHERE account_number = %s")
+
 balance_query = ("SELECT balance FROM atm.account WHERE account_number = %s")
-login_query = ("SELECT username FROM atm.customer WHERE username = %s and password = %s")
+login_query = ("SELECT username, password FROM atm.customer WHERE username = %s and password = %s")
 
-transfer_from_query = query_add = ("UPDATE atm.account SET balance = balance - %s WHERE account_number = %s")
-transfer_to_query = query_add = ("UPDATE atm.account SET balance = balance + %s WHERE account_number = %s")
+account_query = ("SELECT account_number FROM atm.account;")
+username_query = ("SELECT username FROM atm.customer;")
+check_account_query = ("SELECT account_number FROM atm.customer WHERE account_number = %s;")
 
-customer_info_query = ("SELECT account_number, balance, fullname, email FROM atm.account join atm.customer on (atm.account.customer_id = atm.customer.id) where username = %s and password = %s")
-account_info_query = ("SELECT account_number, balance, fullname, email FROM atm.account join atm.customer on (atm.account.customer_id = atm.customer.id) where account_number = %s")
+transfer_from_query = query_add = ("UPDATE atm.account join atm.customer on (atm.account.customer_id = atm.customer.account_number) SET balance = balance - %s WHERE account_number = %s")
+transfer_to_query = query_add = ("UPDATE atm.account join atm.customer on (atm.account.customer_id = atm.customer.account_number) SET balance = balance + %s WHERE account_number = %s")
+
+customer_transfer_query = ("SELECT account_number, balance FROM atm.customer join atm.account on (atm.account.customer_id = atm.customer.account_number) where account_number = %s and balance > %s")
+customer_info_query = ("SELECT account_number, balance, fullname, email FROM atm.account join atm.customer on (atm.account.customer_id = atm.customer.account_number) where username = %s and password = %s")
+account_info_query = ("SELECT account_number, balance, fullname, email FROM atm.account join atm.customer on (atm.account.customer_id = atm.customer.account_number) where account_number = %s")
 
 def query_db(query, *args):
 	cnx = mysql.connector.connect(**query_config)
@@ -50,6 +64,3 @@ def query_db(query, *args):
 	cursor.close()
 	cnx.close()
 	return result
-
-#print(query_db(insert_account_data_query,'7', '1989', '6000000', 'Current'))
-#print(query_db(insert_cusomer_data_query,'Kemi Awojana', 'yutbabie', 'yyuyu97', 'F', 'kemiawojana@gmail.com', date(1992, 9, 2)))
