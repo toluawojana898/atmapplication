@@ -1,74 +1,116 @@
-import getpass as pas
+import query_db as qdb
 import login
-import welcome
-import deposit_cash as dep
-import query_db as qdb 
+import getpass as pas 
 from datetime import date
 import logging
 import mysql.connector
 from mysql.connector import errorcode
+import re
+import smtplib
+from email.mime.text import MIMEText
 
-def myATM():
-	print('_'*85)
-	print('|','Welcome to Teejay\'s Bank'.center(82),'|')
-	print('|','_'*82,'|')
+def cashAdd(username,password):
+	account_number, balance, ___ = qdb.query_db(qdb.display_customer_data_query,username,password)[0]
+	amount = int(input("Enter the amount you want to deposit: "))
+	final_amount = int(balance) + amount
+	qdb.query_db(qdb.transfer_to_query,amount,account_number)
+	#We have to check this
+	#update the log
+	print('The deposit of {} was successful for account number {} you now have a balance of {}'.format(amount,account_number,final_amount))
+	qdb.logger.debug('Deposit of {} successful for {}'.format(amount,account_number))
+
+def cashRemove(username,password):
+	account_number, balance, ___ = qdb.query_db(qdb.display_customer_data_query,username,password)[0]
+	amount = int(input("Enter the amount you would like to withdraw: "))
+	if amount <= int(balance):
+		final_amount = int(balance) - amount
+		qdb.query_db(qdb.transfer_from_query,amount,account_number)
+		print('Withdrawal successful please take your cash!, your current balance is {}'.format(final_amount))
+		qdb.logger.debug('Withdrawal of {} successful for {}'.format(amount,account_number))
+		return True
+	else:
+		print('Insufficient Funds!')
+		qdb.logger.debug('Insufficient funds for Account number: {}'.format(account_number))
+		return False
+
+def transfercash(account_number):
 	try:
-		action = int(input('Select 1 to login or 2 to create a new account: '))
+		receiver_name = input('Recipients full name: ')
+		receiver_acc_num = int(input('Recipient\'s Account Number: '))
+		amount_send = int(input('Amount you want to transfer: '))
+		rcv_acc_num = qdb.query_db(qdb.check_account_query,receiver_acc_num)[0]
+		if receiver_acc_num not in rcv_acc_num:
+			print('Recipient does not exist')
 	except:
-		action = 0
+		print('Something went wrong :)')
+		return False	
+
+	try:
+		account_number, balance = qdb.query_db(qdb.customer_transfer_query,account_number, amount_send)[0]
+		print('You have transferred {} to {}'.format(amount_send,receiver_name))
+		qdb.logger.debug('Successfully debited account number {} with {}'.format(account_number,amount_send))
+		qdb.logger.debug('Successfully credited account number {} with {}'.format(receiver_acc_num,amount_send))
+	except:
+		print('Insufficient Funds to complete this operation')
+		qdb.logger.debug('Insufficient funds for Account Number {}'.format(account_number))
+		#print('This account belongs to {}'.format(receiver_name))
+		#print(account_number)
+	qdb.query_db(qdb.transfer_from_query,amount_send,account_number)
+	qdb.query_db(qdb.transfer_to_query,amount_send,receiver_acc_num)
+
+#else:
+#print('There is no sufficient funds to complete this operation')
+#if amount_send >= int(balance):
+			#final_amount = int(balance) - amount_send
+def accNew():
+	#user_name = qdb.query_db(qdb.check_customer_username)
+	#check_customer_username = ("SELECT username FROM atm.customer;")
+	fullname = input('Enter your fullname: ').title()
+	newuser = input('Enter a unique login username: ')
+	user_name = qdb.query_db(qdb.check_customer_username)[0]
+	#print(user_name)
+	while newuser in user_name:
+		print('Not available! use another name')
+		newuser = input('Enter a unique login username again: ')
+
+	pd = pas.getpass(prompt='Enter a login password:')
+
+	gender = input('Gender! Enter either "M" or "F" only: ').upper()
+
+	email = input('Enter a valid email address: ')
 	while True:
-		if action not in [1,2]:
-			print('You should select 1 or 2')
-			try:
-				action = int(input('Select 1 to login or 2 to create a new account: '))
-			except:
-				action = 0
-			continue
+		match = re.search(r'^(\w.+)@(\w+)\.(\w+)$', email)
+		if not match:
+			email = input('Re-enter a valid email address: ')
 		else:
 			break
-	if action == 1:
-		print('This is the Login Page!')
-		userinput = input('Enter username: ')
-		pidkeys = pas.getpass(prompt='password: ')
-		if login.enter_pass(userinput,pidkeys):
-			account_number, balance = welcome.dashboard(userinput,pidkeys)
-			while True:
-				try:
-					print('Select options 1 to 4.')
-					options = int(input('Enter your choice:1,2,3,4: '))
-				except:
-					options = 0
-				if options in [1,2,3,4]:
-					if options == 1:
-						dep.cashAdd(userinput,pidkeys)
-					if options == 2:
-						dep.cashRemove(userinput,pidkeys)
-					if options == 3:
-						dep.transfercash(account_number)
-					if options ==4:
-						print('Thanks for banking with us, we are here to serve you better.')
-						break
-				else:
-					try:
-						print('Select options 1 to 4.')
-						options = int(input('Enter your choice:1,2,3,4: '))
-					except:
-						options = 0
-	else:
-		dep.accNew()
-myATM()
 
-'''
-	second_option = int(input('Would you like to do anything else, press 1 for Yes and 2 for No: '))
-	if second_option == 1:
-		at.myATM()
-	else:
-		print('Thank you for banking with Teejay\'s Bank')
-		pass
-		return True
-
-second_option = int(input('Would you like to do anything else, press 1 for Yes and 2 for No: '))
-					if second_option == 2:
-						print('Thank you for banking with Teejay\'s Bank')
-					else:
-'''
+	dob = input('Enter date of birth in this format YYYY MM DD: ')
+	dob = dob.split(' ')
+	dob[0] = int(dob[0])
+	dob[1] = int(dob[1])
+	dob[2] = int(dob[2])
+	
+	qdb.query_db(qdb.insert_cusomer_data_query,fullname, newuser, pd, gender, email, date(dob[0],dob[1],dob[2]))
+	balance = int(input('Enter your opening balance: '))
+	account_type = input('Enter account type,"Savings" or "Current": ').title()
+	account_number = qdb.query_db(qdb.get_account_query,newuser, pd)[0][0]
+	qdb.query_db(qdb.insert_account_data_query, account_number, balance, account_type)
+	qdb.logger.debug('Account number {} successfully created for {}'.format(account_number,fullname))
+	print('Welcome to Teejay\'s BANK'.center(60))
+	server = smtplib.SMTP('smtp.gmail.com:587')
+	server.starttls()
+	server.ehlo()
+	server.login('bankerspython@gmail.com', 'atmapplication2020')
+	msg = MIMEText('Hello {}, Welcome to Teejay\'s Bank! Your new account number is {}'.format(fullname, account_number))
+    #print('Hello {}, Your new account number is {}'.format(fname, acc))
+	fromx = 'bankerspython@gmail.com'
+	msg['Subject'] = 'Welcome to Teejay\'s Bank'
+	msg['From'] = fromx
+	server.sendmail(fromx, email, msg.as_string()) 
+	server.quit()
+	
+	#Update the database with the value transferred to the beneficiary
+	#Send a mail notifying the recipient of the successful transfer
+		
+	
