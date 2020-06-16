@@ -31,6 +31,8 @@ display_customer_data_query = ("SELECT account_number, balance, fullname FROM at
 get_account_query = ("SELECT account_number FROM atm.customer WHERE username = %s and password = %s")
 
 account_name_query = ("SELECT fullname FROM atm.customer WHERE account_number = %s")
+user_name_query = ("SELECT username FROM atm.customer WHERE account_number = %s")
+
 
 balance_query = ("SELECT balance FROM atm.account WHERE account_number = %s")
 login_query = ("SELECT username, password FROM atm.customer WHERE username = %s and password = %s")
@@ -64,3 +66,6 @@ def query_db(query, *args):
 	cursor.close()
 	cnx.close()
 	return result
+
+#print(query_db(insert_cusomer_data_query, 'Kemi Akinde', 'kemi', 'kemi', 'F', 'oluwakemiawojana@yahoo.com', date(1980, 8, 1)))
+#print(query_db(insert_account_data_query, '1001','6000000','Savings'))
